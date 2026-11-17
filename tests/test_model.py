@@ -2,6 +2,7 @@ import pytest
 
 from rvo.assumptions import scenario_for_type
 from rvo.costs import gst_on_new_home, land_titles_fees, maintenance_schedule, selling_costs
+from rvo.model import simulate
 from rvo.mortgage import amortization_schedule, cmhc_premium_rate, minimum_down_payment, payment, setup_mortgage
 
 
@@ -46,6 +47,16 @@ def test_alberta_fees_and_selling_costs():
     assert land_titles_fees(402_000, 380_000) == 50 + 5 * 81 + 50 + 5 * 76
     s = scenario_for_type("detached")
     assert float(selling_costs(500_000, s)) == pytest.approx((7_000 + 12_000) * 1.05 + s.sell_legal_fees)
+
+
+def test_cash_flow_parity_with_zero_returns():
+    s = scenario_for_type("detached", price=600_000, monthly_rent=2_800, portfolio_return=0.0,
+                          home_appreciation=0.0, horizon_years=10, home_age_years=15)
+    r = simulate(s)
+    owner_out = r.owner_monthly_total[0].sum() + r.upfront_cash
+    renter_out = r.renter_monthly_total.sum()
+    # Both households spend the same total: housing outflows + money invested.
+    assert owner_out + r.owner_portfolio[0, -1] == pytest.approx(renter_out + r.renter_portfolio[0, -1])
 
 
 def test_new_build_has_lower_early_maintenance_than_old_home():
