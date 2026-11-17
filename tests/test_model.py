@@ -1,5 +1,7 @@
 import pytest
 
+from rvo.assumptions import scenario_for_type
+from rvo.costs import gst_on_new_home, land_titles_fees, maintenance_schedule, selling_costs
 from rvo.mortgage import amortization_schedule, cmhc_premium_rate, minimum_down_payment, payment, setup_mortgage
 
 
@@ -31,3 +33,29 @@ def test_schedule_pays_off_and_renewal_changes_payment():
     assert sch.balance[300] == pytest.approx(0, abs=1e-6)
     assert sch.payment[300:].sum() == 0
     assert sch.payment[60] > sch.payment[59]
+
+
+def test_gst_rebates():
+    assert gst_on_new_home(400_000, True)["net"] == pytest.approx(0)
+    assert gst_on_new_home(400_000, False)["rebate"] == pytest.approx(6_300 * 0.5)
+    assert gst_on_new_home(1_250_000, True)["rebate"] == pytest.approx(50_000 * 0.5)
+    assert gst_on_new_home(600_000, False)["net"] == pytest.approx(30_000)
+
+
+def test_alberta_fees_and_selling_costs():
+    assert land_titles_fees(402_000, 380_000) == 50 + 5 * 81 + 50 + 5 * 76
+    s = scenario_for_type("detached")
+    assert float(selling_costs(500_000, s)) == pytest.approx((7_000 + 12_000) * 1.05 + s.sell_legal_fees)
+
+
+def test_new_build_has_lower_early_maintenance_than_old_home():
+    new = scenario_for_type("detached", is_new_build=True, horizon_years=5)
+    old = scenario_for_type("detached", is_new_build=False, home_age_years=30, horizon_years=5)
+    assert maintenance_schedule(new)[0].sum() < maintenance_schedule(old)[0].sum()
+
+
+def test_big_ticket_items_fire_on_schedule():
+    s = scenario_for_type("detached", home_age_years=18, horizon_years=5)
+    _, big = maintenance_schedule(s)
+    # Roof, furnace and fence (20-yr lifespans) are due when the home turns 20, i.e. year 2.
+    assert big[24] > 0 and big[:24].sum() == 0
