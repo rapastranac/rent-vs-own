@@ -1,0 +1,26 @@
+{
+  "refreshed_at": "2026-11-16T17:32:46+00:00",
+  "files": {
+    "cpi_calgary_annual.csv": {
+      "rows": 55
+    },
+    "nhpi_calgary_monthly.csv": {
+      "rows": 549
+    },
+    "cmhc_rents_calgary.csv": {
+      "rows": 378
+    },
+    "cmhc_vacancy_calgary.csv": {
+      "rows": 55
+    },
+    "mortgage_rate_5yr.csv": {
+      "rows": 970
+    },
+    "assessments_current_by_type.csv": {
+      "rows": 20
+    },
+    "assessments_history_by_type.csv": {
+      "rows": 41
+    }
+  }
+}
