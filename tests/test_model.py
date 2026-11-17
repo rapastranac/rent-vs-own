@@ -1,7 +1,9 @@
+import numpy as np
 import pytest
 
 from rvo.assumptions import scenario_for_type
 from rvo.costs import gst_on_new_home, land_titles_fees, maintenance_schedule, selling_costs
+from rvo.crossover import classify, find_crossings, min_holding_months
 from rvo.model import simulate
 from rvo.mortgage import amortization_schedule, cmhc_premium_rate, minimum_down_payment, payment, setup_mortgage
 
@@ -70,3 +72,15 @@ def test_big_ticket_items_fire_on_schedule():
     _, big = maintenance_schedule(s)
     # Roof, furnace and fence (20-yr lifespans) are due when the home turns 20, i.e. year 2.
     assert big[24] > 0 and big[:24].sum() == 0
+
+
+def test_crossings_and_min_holding():
+    gap = np.array([-10, -5, 5, 10, -2, 3, 4], dtype=float)
+    cs = find_crossings(gap)
+    assert [c.direction for c in cs] == ["owner", "renter", "owner"]
+    assert cs[0].month == pytest.approx(1.5)
+    assert min_holding_months(gap)[0] == 5
+    assert np.isnan(min_holding_months(np.array([-1, 1, -1.0]))[0])
+    assert "never cross" in classify(np.array([-1, -2, -3.0]), 10)
+    both = min_holding_months(np.array([[-1, 1, 1], [1, 1, -1.0]]))
+    assert both[0] == 1 and np.isnan(both[1])
